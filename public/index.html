@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Dispute</title>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --fg:#14181f; --muted:#5b6472; --line:#dfe3ea; --accent:#0b57d0; --good:#0a7f42; --warn:#b45309; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1218; --card:#171b23; --fg:#e8ebf0; --muted:#98a1b0; --line:#2a303b; --accent:#7ab0ff; --good:#4cc38a; --warn:#f0b35a; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, sans-serif; }
+  header { padding:16px; border-bottom:1px solid var(--line); background:var(--card); }
+  h1 { margin:0; font-size:18px; } h2 { font-size:14px; margin:0 0 8px; }
+  .sub { color:var(--muted); font-size:13px; }
+  main { padding:16px; display:grid; gap:16px; max-width:1200px; margin:0 auto; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .stat, .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .stat b { display:block; font-size:22px; } .stat span { color:var(--muted); font-size:12px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:7px 12px; font:inherit; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:wait; }
+  #grid { height:280px; }
+  .decision { border-top:1px solid var(--line); padding:8px 0; }
+  .tag { font-size:12px; padding:1px 7px; border-radius:99px; border:1px solid var(--line); }
+  .tag.pending { color:var(--warn); } .tag.executed { color:var(--good); }
+  #log { color:var(--muted); font-size:13px; min-height:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pre-Dispute</h1>
+  <div class="sub">AI agent that fixes problems before buyers open a PayPal dispute. Sandbox data. Merchant policy limits what the AI can do alone.</div>
+</header>
+<main>
+  <section class="stats" id="stats"></section>
+
+  <section class="card">
+    <h2>Orders</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button id="delay">Simulate delay + worried buyer</button>
+      <button id="agent">Run agent on selected</button>
+      <span class="sub">Select an order first.</span>
+    </div>
+    <div id="grid" class="ag-theme-quartz"></div>
+    <div id="log"></div>
+  </section>
+
+  <section class="card">
+    <h2>Agent decisions</h2>
+    <div id="decisions"></div>
+  </section>
+
+  <section class="card">
+    <h2>Outcome billing</h2>
+    <div class="row">
+      <button class="secondary" id="travel">Fast-forward 14 days (no disputes)</button>
+      <button id="invoice">Create PayPal invoice for prevented disputes</button>
+      <span id="inv" class="sub"></span>
+    </div>
+  </section>
+</main>
+<script>
+const eur = n => '€' + Number(n || 0).toFixed(2);
+const $ = id => document.getElementById(id);
+const log = m => $('log').textContent = m;
+
+async function api(path, method = 'GET', body) {
+  const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+const grid = agGrid.createGrid($('grid'), {
+  rowSelection: 'single',
+  getRowId: p => p.data.paypal_order_id,
+  columnDefs: [
+    { field: 'item', flex: 1.5 },
+    { field: 'amount', valueFormatter: p => eur(p.value), width: 100 },
+    { field: 'refunded', valueFormatter: p => eur(p.value), width: 100 },
+    { field: 'shipping_status', headerName: 'Shipping', width: 120 },
+    { field: 'days_late', headerName: 'Days late', width: 100 },
+    { field: 'risk', valueFormatter: p => p.value == null ? '-' : Math.round(p.value * 100) + '%', width: 90 },
+    { field: 'last_action', headerName: 'Last action', width: 140 },
+    { field: 'state', width: 100 },
+  ],
+  rowData: [],
+});
+
+async function refresh() {
+  const [orders, decisions, s] = await Promise.all([api('/api/orders'), api('/api/decisions'), api('/api/stats')]);
+  grid.setGridOption('rowData', orders);
+  $('stats').innerHTML = [
+    ['Open orders', s.openOrders], ['Value at risk', eur(s.openValue)], ['Pending approvals', s.pendingApprovals],
+    ['Disputes prevented', s.prevented], ['Refunded', eur(s.refundedTotal)], ['Est. loss avoided', eur(s.estLossAvoided)], ['Fees earned', eur(s.fees)],
+  ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+  $('decisions').innerHTML = decisions.length ? decisions.map(d => `
+    <div class="decision">
+      <div class="row"><b>${d.action}</b> ${d.amount > 0 ? eur(d.amount) : ''}
+        <span class="tag ${d.status}">${d.status}</span><span class="tag">${d.verdict}</span>
+        ${d.risk != null ? `<span class="sub">risk ${Math.round(d.risk * 100)}%</span>` : ''}
+        ${d.status === 'pending' ? `<button data-a="approve" data-id="${d.id}">Approve</button><button class="secondary" data-a="reject" data-id="${d.id}">Reject</button>` : ''}
+      </div>
+      <div class="sub">${d.reason ?? ''}</div>
+      ${d.message_to_buyer ? `<div class="sub">To buyer: "${d.message_to_buyer}"</div>` : ''}
+      ${d.paypal_ref ? `<div class="sub">PayPal refund ${d.paypal_ref}</div>` : ''}
+    </div>`).join('') : '<div class="sub">No decisions yet.</div>';
+}
+
+function selected() { const r = grid.getSelectedRows()[0]; if (!r) throw new Error('Select an order first'); return r; }
+async function act(btn, fn) {
+  btn.disabled = true;
+  try { await fn(); } catch (e) { log('Error: ' + e.message); } finally { btn.disabled = false; await refresh(); }
+}
+
+$('delay').onclick = e => act(e.target, async () => {
+  const o = selected();
+  await api(`/api/orders/${o.paypal_order_id}/delay`, 'POST', { days: 6, message: `Hi, my ${o.item} was supposed to arrive days ago and tracking hasn't moved. I'm getting worried, what is going on?` });
+  log('Delay injected. Run the agent.');
+});
+$('agent').onclick = e => act(e.target, async () => {
+  const o = selected(); log('Agent thinking...');
+  const d = await api(`/api/orders/${o.paypal_order_id}/run-agent`, 'POST');
+  log(`Agent chose ${d.action} (${d.verdict}, ${d.status}).`);
+});
+$('decisions').onclick = e => { const b = e.target.closest('button'); if (b) act(b, () => api(`/api/decisions/${b.dataset.id}/${b.dataset.a}`, 'POST')); };
+$('travel').onclick = e => act(e.target, async () => { const r = await api('/api/time-travel', 'POST'); log(`Checked ${r.confirmed} resolved order(s).`); });
+$('invoice').onclick = e => act(e.target, async () => {
+  const r = await api('/api/billing/invoice', 'POST');
+  $('inv').innerHTML = `Invoice ${r.id}: ${r.count} x fee = ${eur(r.total)} - <a href="${r.payerView}" target="_blank" rel="noopener">open</a>`;
+});
+refresh();
+</script>
+</body>
+</html>
