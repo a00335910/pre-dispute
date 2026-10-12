@@ -67,3 +67,21 @@ export async function createAndSendInvoice(quantity: number, unitFee: number, no
   const sent = await pp(`/v2/invoicing/invoices/${id}/send`, { method: "POST", body: { send_to_recipient: false, send_to_invoicer: false } });
   return { id, payerView: sent.href as string };
 }
+
+// Sandbox only: pays with PayPal's generic test card so the server can seed captured orders without a browser approval.
+export async function createCapturedCardOrder(amount: string, description: string, requestId: string) {
+  const o = await pp("/v2/checkout/orders", {
+    method: "POST", requestId,
+    body: {
+      intent: "CAPTURE",
+      purchase_units: [{ amount: { currency_code: cfg.currency, value: amount }, description }],
+      payment_source: { card: {
+        number: "4111111111111111", expiry: "2030-12", security_code: "123", name: "Demo Buyer",
+        billing_address: { address_line_1: "1 Main St", admin_area_2: "Dublin", postal_code: "D01 F5P2", country_code: "IE" },
+      } },
+    },
+  });
+  const captureId = o.purchase_units?.[0]?.payments?.captures?.[0]?.id as string | undefined;
+  if (o.status !== "COMPLETED" || !captureId) throw new Error(`Card order not captured (status ${o.status})`);
+  return { orderId: o.id as string, captureId };
+}

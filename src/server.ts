@@ -3,6 +3,7 @@ import { z } from "zod";
 import { all, get, run } from "./db.js";
 import { cfg } from "./config.js";
 import { executeDecision, runAgent } from "./agent.js";
+import { hasOrders, resetDemoData, seedDemoOrders } from "./demo.js";
 import { confirmPrevented, invoiceOutcomes, stats } from "./billing.js";
 
 const app = express();
@@ -31,13 +32,29 @@ app.post("/api/orders/:id/delay", wrap((r) => {
   run("INSERT INTO messages (order_id, sender, body) VALUES (?,?,?)", r.params.id, "buyer", b.message);
   return { ok: true };
 }));
-app.post("/api/orders/:id/run-agent", wrap((r) => runAgent(String(r.params.id))));
+app.post("/api/orders/:id/run-agent", wrap((r) => limited(() => runAgent(String(r.params.id)))()));
 app.post("/api/decisions/:id/approve", wrap((r) => executeDecision(Number(r.params.id))));
 app.post("/api/decisions/:id/reject", wrap((r) => {
   run("UPDATE decisions SET status = 'rejected' WHERE id = ? AND status = 'pending'", Number(r.params.id));
   return { ok: true };
 }));
+// Public demo: cap how often the costly endpoints (LLM + PayPal) can be hit.
+const hits: number[] = [];
+const limited = (fn: () => Promise<unknown> | unknown) => () => {
+  const now = Date.now();
+  while (hits.length && now - hits[0] > 60_000) hits.shift();
+  if (hits.length >= 20) throw new Error("Demo rate limit reached, try again in a minute");
+  hits.push(now);
+  return fn();
+};
+app.post("/api/demo/reset", wrap(limited(async () => { resetDemoData(); return { created: await seedDemoOrders() }; })));
 app.post("/api/time-travel", wrap(() => ({ confirmed: confirmPrevented() })));
 app.post("/api/billing/invoice", wrap(() => invoiceOutcomes("merchant-demo@example.com")));
 
-app.listen(cfg.port, () => console.log(`Pre-Dispute running on http://localhost:${cfg.port}`));
+app.listen(cfg.port, async () => {
+  console.log(`Pre-Dispute running on port ${cfg.port}`);
+  if (process.env.DEMO_AUTOSEED !== "false" && !hasOrders()) {
+    try { console.log(`Seeded ${await seedDemoOrders()} demo orders`); }
+    catch (e: any) { console.error("Auto-seed failed:", e.message); }
+  }
+});

@@ -40,19 +40,18 @@ The AI proposes; rules and the merchant decide. The agent is never told the appr
 ## Run it locally
 Requirements: Node 24+ (uses the built-in `node:sqlite`), a PayPal developer account, a Google AI Studio API key.
 
-1. In the PayPal Developer Dashboard create a sandbox **Business** account (the merchant) and a REST app for it, plus a **Personal** sandbox account (the buyer).
+1. In the PayPal Developer Dashboard create a sandbox **Business** account and a REST app for it (Apps & Credentials -> Sandbox).
 2. Copy `.env.example` to `.env` and fill in `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `LLM_API_KEY`.
-3. Install and create demo orders:
+3. Install and start:
    ```
    npm install
-   npm run seed:new       # creates 5 sandbox orders, prints approval links
-   ```
-   Open each link, log in with the **Personal** sandbox account, and click Complete Purchase.
-   ```
-   npm run seed:capture   # captures the approved orders
    npm run dev            # http://localhost:3000
    ```
+   On first start with an empty database the app creates 5 sandbox orders, paid and captured with PayPal's test card, so no browser approval is needed. Use **Reset demo data** in the dashboard to get a fresh set.
 4. In the dashboard: select an order, click **Simulate delay + worried buyer**, then **Run agent on selected**. Approve or reject anything in the queue. Click **Fast-forward 14 days**, then **Create PayPal invoice**.
+
+## Deploy on Render
+`render.yaml` defines the service. Connect the repo in Render, then set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `LLM_API_KEY` in the dashboard. The free tier has no persistent disk, so the SQLite file lives in `/tmp` and the demo data re-seeds on each restart.
 
 ## Limits and honesty
 - "Prevented" is simulated by the fast-forward button. A production version would confirm with the PayPal Disputes API and webhooks.

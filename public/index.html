@@ -41,6 +41,7 @@
     <div class="row" style="margin-bottom:8px">
       <button id="delay">Simulate delay + worried buyer</button>
       <button id="agent">Run agent on selected</button>
+      <button class="secondary" id="reset">Reset demo data</button>
       <span class="sub">Select an order first.</span>
     </div>
     <div id="grid" class="ag-theme-quartz"></div>
@@ -125,6 +126,7 @@ $('agent').onclick = e => act(e.target, async () => {
   const d = await api(`/api/orders/${o.paypal_order_id}/run-agent`, 'POST');
   log(`Agent chose ${d.action} (${d.verdict}, ${d.status}).`);
 });
+$('reset').onclick = e => act(e.target, async () => { log('Creating fresh sandbox orders...'); const r = await api('/api/demo/reset', 'POST'); log(`Created ${r.created} captured sandbox orders.`); });
 $('decisions').onclick = e => { const b = e.target.closest('button'); if (b) act(b, () => api(`/api/decisions/${b.dataset.id}/${b.dataset.a}`, 'POST')); };
 $('travel').onclick = e => act(e.target, async () => { const r = await api('/api/time-travel', 'POST'); log(`Checked ${r.confirmed} resolved order(s).`); });
 $('invoice').onclick = e => act(e.target, async () => {
