@@ -45,7 +45,7 @@ export async function executeDecision(decisionId: number) {
   try {
     let ref: string | null = null;
     if (d.amount > 0 && (d.action === "partial_refund" || d.action === "full_refund")) {
-      const r = await refundCapture(order.capture_id, d.amount.toFixed(2), d.message_to_buyer ?? "Refund", `pd-decision-${d.id}`);
+      const r = await refundCapture(order.capture_id, d.amount.toFixed(2), d.message_to_buyer ?? "Refund", `pd-${order.capture_id}-${d.id}-${d.amount.toFixed(2)}`);
       ref = r.id;
       run("UPDATE orders SET refunded = refunded + ? WHERE paypal_order_id = ?", d.amount, order.paypal_order_id);
     }

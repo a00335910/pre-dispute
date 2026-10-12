@@ -4,68 +4,173 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pre-Dispute</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b57d0'/%3E%3Cpath d='M9 16.5l5 5 9-11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --fg:#14181f; --muted:#5b6472; --line:#dfe3ea; --accent:#0b57d0; --good:#0a7f42; --warn:#b45309; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0f1218; --card:#171b23; --fg:#e8ebf0; --muted:#98a1b0; --line:#2a303b; --accent:#7ab0ff; --good:#4cc38a; --warn:#f0b35a; } }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, sans-serif; }
-  header { padding:16px; border-bottom:1px solid var(--line); background:var(--card); }
-  h1 { margin:0; font-size:18px; } h2 { font-size:14px; margin:0 0 8px; }
+  :root {
+    --bg:#f4f6f9; --card:#ffffff; --fg:#121722; --muted:#5a6475; --line:#e0e5ec; --soft:#f0f3f8;
+    --accent:#0b57d0; --accent-fg:#ffffff;
+    --good:#0a7a40; --good-bg:#e4f5ec; --warn:#9a5b00; --warn-bg:#fdf0d9; --bad:#b3261e; --bad-bg:#fbe6e4; --info:#0b57d0; --info-bg:#e6eefc;
+    --shadow:0 1px 2px rgba(16,24,40,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0d1117; --card:#161b24; --fg:#e8ecf3; --muted:#9aa4b5; --line:#262d3a; --soft:#1c2330;
+      --accent:#6ea8ff; --accent-fg:#0b1220;
+      --good:#4cc38a; --good-bg:#12291f; --warn:#f0b35a; --warn-bg:#2d2412; --bad:#ff8a80; --bad-bg:#2f1715; --info:#7ab0ff; --info-bg:#14243f;
+      --shadow:none;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1240px; margin:0 auto; padding:0 16px; }
+  header { background:var(--card); border-bottom:1px solid var(--line); }
+  header .wrap { display:flex; align-items:center; gap:12px; padding-top:14px; padding-bottom:14px; flex-wrap:wrap; }
+  .logo { width:30px; height:30px; border-radius:8px; background:var(--accent); display:grid; place-items:center; flex:none; }
+  .logo svg { width:18px; height:18px; stroke:var(--accent-fg); }
+  h1 { font-size:17px; margin:0; letter-spacing:-.01em; }
+  .tagline { color:var(--muted); font-size:13px; flex:1; min-width:220px; }
+  .pill { font-size:12px; padding:2px 10px; border-radius:99px; background:var(--warn-bg); color:var(--warn); font-weight:600; }
+  main { padding:16px 0 48px; display:grid; gap:16px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px; font-weight:600; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
+
+  .flow { display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:13px; align-items:center; }
+  .flow b { color:var(--fg); }
+  .flow .n { display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--info-bg); color:var(--info); font-size:12px; font-weight:700; margin-right:6px; }
+  .flow .arrow { opacity:.5; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+  .kpi .v { font-size:26px; font-weight:700; letter-spacing:-.02em; line-height:1.2; font-variant-numeric:tabular-nums; }
+  .kpi .l { color:var(--muted); font-size:12px; margin-top:2px; }
+  .kpi.hero { border-color:var(--accent); }
+  .kpi .v.good { color:var(--good); }
+
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .spacer { flex:1; }
+  button, select { font:inherit; border-radius:8px; padding:7px 13px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  button { cursor:pointer; font-weight:600; }
+  button.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+  button.ghost:hover { background:var(--soft); }
+  button.good { background:var(--good); color:#fff; border-color:var(--good); }
+  button:disabled { opacity:.55; cursor:progress; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  #grid { width:100%; }
+
+  .cols { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:16px; align-items:start; }
+  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+  @media (max-width:640px) { .flow .arrow { display:none; } .flow { gap:6px 14px; } .meter .track { display:none; } }
+
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:2px 9px; border-radius:99px; white-space:nowrap; line-height:1.5; }
+  .b-good { background:var(--good-bg); color:var(--good); } .b-warn { background:var(--warn-bg); color:var(--warn); }
+  .b-bad { background:var(--bad-bg); color:var(--bad); } .b-info { background:var(--info-bg); color:var(--info); } .b-mute { background:var(--soft); color:var(--muted); }
+  .meter { display:flex; align-items:center; gap:8px; height:100%; }
+  .meter .track { width:56px; height:6px; border-radius:3px; background:var(--soft); overflow:hidden; flex:none; }
+  .meter .fill { height:100%; border-radius:3px; }
+  .meter span { font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+
+  .case-head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .case-head .t { font-size:17px; font-weight:700; }
+  .thread { display:grid; gap:8px; margin-bottom:14px; }
+  .msg { max-width:88%; padding:8px 12px; border-radius:12px; font-size:13.5px; }
+  .msg small { display:block; color:var(--muted); font-size:11px; margin-bottom:1px; font-weight:600; }
+  .msg.buyer { background:var(--soft); justify-self:start; border-bottom-left-radius:4px; }
+  .msg.agent { background:var(--info-bg); justify-self:end; border-bottom-right-radius:4px; }
+  .decision { border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--soft); margin-bottom:8px; }
+  .decision .top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .decision .act { font-weight:700; font-size:15px; }
+  .checks { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:4px; font-size:13px; }
+  .checks li { display:flex; gap:8px; }
+  .checks .ic { flex:none; width:18px; text-align:center; font-weight:700; }
   .sub { color:var(--muted); font-size:13px; }
-  main { padding:16px; display:grid; gap:16px; max-width:1200px; margin:0 auto; }
-  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
-  .stat, .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; }
-  .stat b { display:block; font-size:22px; } .stat span { color:var(--muted); font-size:12px; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:7px 12px; font:inherit; cursor:pointer; }
-  button.secondary { background:transparent; color:var(--fg); border:1px solid var(--line); }
-  button:disabled { opacity:.5; cursor:wait; }
-  #grid { height:280px; }
-  .decision { border-top:1px solid var(--line); padding:8px 0; }
-  .tag { font-size:12px; padding:1px 7px; border-radius:99px; border:1px solid var(--line); }
-  .tag.pending { color:var(--warn); } .tag.executed { color:var(--good); }
-  #log { color:var(--muted); font-size:13px; min-height:20px; }
+  .draft { margin-top:8px; padding:8px 10px; border-left:3px solid var(--accent); background:var(--card); border-radius:0 8px 8px 0; font-size:13px; }
+  .empty { color:var(--muted); padding:18px 4px; text-align:center; }
+
+  .queue-item { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .queue-item .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+
+  .roi { display:grid; gap:8px; margin-top:12px; }
+  .roi .bar { display:grid; grid-template-columns:120px 1fr 64px; gap:8px; align-items:center; font-size:13px; }
+  .roi .track { height:10px; background:var(--soft); border-radius:5px; overflow:hidden; }
+  .roi .fill { height:100%; border-radius:5px; }
+  .roi .val { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:9px 16px; border-radius:10px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s; max-width:92vw; z-index:10; }
+  #toast.show { opacity:1; }
+  a { color:var(--accent); }
 </style>
 </head>
 <body>
 <header>
-  <h1>Pre-Dispute</h1>
-  <div class="sub">AI agent that fixes problems before buyers open a PayPal dispute. Sandbox data. Merchant policy limits what the AI can do alone.</div>
+  <div class="wrap">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5 9-11"/></svg></div>
+    <h1>Pre-Dispute</h1>
+    <div class="tagline">An AI agent that fixes problems before a buyer opens a PayPal dispute. You pay only when it works.</div>
+    <span class="pill">PayPal sandbox</span>
+  </div>
 </header>
-<main>
-  <section class="stats" id="stats"></section>
+
+<main class="wrap">
+  <div class="flow card" aria-label="How it works">
+    <span><span class="n">1</span><b>Buyer signal</b> delay or worried message</span><span class="arrow">→</span>
+    <span><span class="n">2</span><b>AI proposes</b> a fix</span><span class="arrow">→</span>
+    <span><span class="n">3</span><b>Policy decides</b> auto or approval</span><span class="arrow">→</span>
+    <span><span class="n">4</span><b>PayPal executes</b> refund</span><span class="arrow">→</span>
+    <span><span class="n">5</span><b>Outcome billed</b> one invoice</span>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="Key numbers"></section>
 
   <section class="card">
     <h2>Orders</h2>
-    <div class="row" style="margin-bottom:8px">
-      <button id="delay">Simulate delay + worried buyer</button>
-      <button id="agent">Run agent on selected</button>
-      <button class="secondary" id="reset">Reset demo data</button>
-      <span class="sub">Select an order first.</span>
+    <div class="toolbar">
+      <select id="scenario" aria-label="Buyer scenario">
+        <option value="calm">Calm check-in (2 days late)</option>
+        <option value="worried" selected>Worried buyer (5 days late)</option>
+        <option value="angry">Angry, threatens a dispute (9 days late)</option>
+      </select>
+      <button id="signal" class="ghost">1 · Send buyer message</button>
+      <button id="agent" class="primary">2 · Run AI agent</button>
+      <span class="spacer"></span>
+      <button id="reset" class="ghost">Reset demo data</button>
     </div>
-    <div id="grid" class="ag-theme-quartz"></div>
-    <div id="log"></div>
+    <div id="grid"></div>
   </section>
 
-  <section class="card">
-    <h2>Agent decisions</h2>
-    <div id="decisions"></div>
-  </section>
-
-  <section class="card">
-    <h2>Outcome billing</h2>
-    <div class="row">
-      <button class="secondary" id="travel">Fast-forward 14 days (no disputes)</button>
-      <button id="invoice">Create PayPal invoice for prevented disputes</button>
-      <span id="inv" class="sub"></span>
+  <div class="cols">
+    <section class="card" id="case" aria-live="polite"></section>
+    <div style="display:grid;gap:16px">
+      <section class="card"><h2>Waiting for your approval</h2><div id="queue"></div></section>
+      <section class="card">
+        <h2>Outcome billing</h2>
+        <div class="sub">A dispute counts as prevented once 14 days pass with no dispute. Prevented cases are billed as one PayPal invoice.</div>
+        <div class="toolbar" style="margin:12px 0 0">
+          <button id="travel" class="ghost">Fast-forward 14 days</button>
+          <button id="invoice" class="primary">Create PayPal invoice</button>
+        </div>
+        <div id="inv" class="sub" style="margin-top:8px"></div>
+        <div id="roi"></div>
+      </section>
     </div>
-  </section>
+  </div>
 </main>
+<div id="toast" role="status"></div>
+
 <script>
 const eur = n => '€' + Number(n || 0).toFixed(2);
 const $ = id => document.getElementById(id);
-const log = m => $('log').textContent = m;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+const SCENARIOS = {
+  calm:    { days: 2, message: (i) => `Hi, just checking in. My ${i} hasn't arrived yet, is it still on the way?` },
+  worried: { days: 5, message: (i) => `Tracking for my ${i} has been stuck for 5 days and I'm getting worried. What is going on?` },
+  angry:   { days: 9, message: (i) => `My ${i} is 9 days late and nobody answers. I want my money back in full today or I will open a PayPal dispute.` },
+};
+
+let toastTimer;
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500); }
 
 async function api(path, method = 'GET', body) {
   const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
@@ -74,64 +179,155 @@ async function api(path, method = 'GET', body) {
   return j;
 }
 
-const grid = agGrid.createGrid($('grid'), {
-  rowSelection: 'single',
+const riskInfo = r => r == null ? null : r >= 0.8 ? ['High', 'var(--bad)'] : r >= 0.4 ? ['Medium', 'var(--warn)'] : ['Low', 'var(--good)'];
+const riskHtml = r => {
+  const i = riskInfo(r); if (!i) return '<span class="sub">not assessed</span>';
+  return `<div class="meter" title="Dispute risk if nothing is done"><div class="track"><div class="fill" style="width:${Math.round(r*100)}%;background:${i[1]}"></div></div><span>${i[0]} ${Math.round(r*100)}%</span></div>`;
+};
+const badge = (cls, icon, text) => `<span class="badge ${cls}"><span aria-hidden="true">${icon}</span>${esc(text)}</span>`;
+const shipBadge = s => s === 'delayed' ? badge('b-warn', '!', 'Delayed') : s === 'delivered' ? badge('b-good', '✓', 'Delivered') : badge('b-mute', '→', 'In transit');
+const stateBadge = s => s === 'resolved' ? badge('b-good', '✓', 'Resolved') : badge('b-info', '●', 'Open');
+const ACTION_LABEL = { notify: 'Send update', partial_refund: 'Partial refund', reship: 'Reship', full_refund: 'Full refund', no_action: 'No action' };
+const actionBadge = a => a ? badge('b-info', '→', ACTION_LABEL[a] || a) : '<span class="sub">-</span>';
+const statusBadge = s => s === 'executed' ? badge('b-good', '✓', 'Done') : s === 'pending' ? badge('b-warn', '!', 'Needs approval') : s === 'rejected' ? badge('b-bad', '✕', 'Rejected') : badge('b-bad', '✕', 'Failed');
+
+const dark = matchMedia('(prefers-color-scheme: dark)');
+const gridEl = $('grid');
+const applyTheme = () => gridEl.className = dark.matches ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
+applyTheme(); dark.addEventListener('change', applyTheme);
+
+let selectedId = null;
+const grid = agGrid.createGrid(gridEl, {
+  rowSelection: { mode: 'singleRow', checkboxes: false, enableClickSelection: true },
   getRowId: p => p.data.paypal_order_id,
+  suppressCellFocus: true,
+  rowHeight: 54,
+  domLayout: 'autoHeight',
+  defaultColDef: { sortable: true, resizable: true, cellStyle: { display: 'flex', alignItems: 'center' } },
   columnDefs: [
-    { field: 'item', flex: 1.5 },
-    { field: 'amount', valueFormatter: p => eur(p.value), width: 100 },
-    { field: 'refunded', valueFormatter: p => eur(p.value), width: 100 },
-    { field: 'shipping_status', headerName: 'Shipping', width: 120 },
-    { field: 'days_late', headerName: 'Days late', width: 100 },
-    { field: 'risk', valueFormatter: p => p.value == null ? '-' : Math.round(p.value * 100) + '%', width: 90 },
-    { field: 'last_action', headerName: 'Last action', width: 140 },
-    { field: 'state', width: 100 },
+    { field: 'item', headerName: 'Order', flex: 1.4, minWidth: 90, cellRenderer: p => p.node.rowPinned ? `<b>${esc(p.value)}</b>` : `<div style="line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>${esc(p.value)}</b><div class="sub" style="font-size:12px">${esc(p.data.buyer_name)}</div></div>` },
+    { field: 'amount', headerName: 'Amount', width: 100, valueFormatter: p => eur(p.value) },
+    { field: 'refunded', headerName: 'Refunded', width: 105, valueFormatter: p => eur(p.value) },
+    { field: 'shipping_status', headerName: 'Shipping', width: 130, cellRenderer: p => p.node.rowPinned ? '' : shipBadge(p.value) + (p.data.days_late ? ` <span class="sub">${p.data.days_late}d</span>` : '') },
+    { field: 'risk', headerName: 'Risk', width: 150, cellRenderer: p => p.node.rowPinned ? '' : riskHtml(p.value) },
+    { field: 'last_action', headerName: 'Last action', width: 140, cellRenderer: p => p.node.rowPinned ? '' : actionBadge(p.value) },
+    { field: 'state', headerName: 'Status', width: 115, cellRenderer: p => p.node.rowPinned ? '' : stateBadge(p.value) },
   ],
+  onRowSelected: e => { if (e.node.isSelected() && e.data.paypal_order_id !== selectedId) { selectedId = e.data.paypal_order_id; renderCase(); } },
   rowData: [],
 });
 
+// On phones keep only the columns that matter: order, risk, status.
+const narrow = matchMedia('(max-width: 640px)');
+const fitColumns = () => {
+  grid.setColumnsVisible(['amount', 'refunded', 'shipping_status', 'last_action'], !narrow.matches);
+  grid.applyColumnState({ state: [{ colId: 'risk', width: narrow.matches ? 104 : 150 }, { colId: 'state', width: narrow.matches ? 98 : 115 }] });
+};
+narrow.addEventListener('change', fitColumns);
+
+let ORDERS = [], DECISIONS = [], STATS = {};
+
 async function refresh() {
-  const [orders, decisions, s] = await Promise.all([api('/api/orders'), api('/api/decisions'), api('/api/stats')]);
-  grid.setGridOption('rowData', orders);
-  $('stats').innerHTML = [
-    ['Open orders', s.openOrders], ['Value at risk', eur(s.openValue)], ['Pending approvals', s.pendingApprovals],
-    ['Disputes prevented', s.prevented], ['Refunded', eur(s.refundedTotal)], ['Est. loss avoided', eur(s.estLossAvoided)], ['Fees earned', eur(s.fees)],
-  ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
-  $('decisions').innerHTML = decisions.length ? decisions.map(d => `
-    <div class="decision">
-      <div class="row"><b>${d.action}</b> ${d.amount > 0 ? eur(d.amount) : ''}
-        <span class="tag ${d.status}">${d.status}</span><span class="tag">${d.verdict}</span>
-        ${d.risk != null ? `<span class="sub">risk ${Math.round(d.risk * 100)}%</span>` : ''}
-        ${d.status === 'pending' ? `<button data-a="approve" data-id="${d.id}">Approve</button><button class="secondary" data-a="reject" data-id="${d.id}">Reject</button>` : ''}
-      </div>
-      <div class="sub">${d.reason ?? ''}</div>
-      ${d.message_to_buyer ? `<div class="sub">To buyer: "${d.message_to_buyer}"</div>` : ''}
-      ${d.paypal_ref ? `<div class="sub">PayPal refund ${d.paypal_ref}</div>` : ''}
-    </div>`).join('') : '<div class="sub">No decisions yet.</div>';
+  [ORDERS, DECISIONS, STATS] = await Promise.all([api('/api/orders'), api('/api/decisions'), api('/api/stats')]);
+  grid.setGridOption('rowData', ORDERS);
+  grid.setGridOption('pinnedBottomRowData', [{ item: 'Total', amount: ORDERS.reduce((s, o) => s + o.amount, 0), refunded: ORDERS.reduce((s, o) => s + o.refunded, 0) }]);
+  if (!selectedId || !ORDERS.some(o => o.paypal_order_id === selectedId)) selectedId = (ORDERS.find(o => o.state === 'open') || ORDERS[0])?.paypal_order_id ?? null;
+  grid.forEachNode(n => { if (n.data?.paypal_order_id === selectedId && !n.isSelected()) n.setSelected(true); });
+  renderKpis(); renderQueue(); renderRoi(); fitColumns(); await renderCase();
 }
 
-function selected() { const r = grid.getSelectedRows()[0]; if (!r) throw new Error('Select an order first'); return r; }
+function renderKpis() {
+  const s = STATS, roi = s.fees > 0 ? (s.estLossAvoided / s.fees) : null;
+  const k = (v, l, cls = '', hero = false) => `<div class="kpi ${hero ? 'hero' : ''}"><div class="v ${cls}">${v}</div><div class="l">${l}</div></div>`;
+  $('kpis').innerHTML =
+    k(s.prevented, 'Disputes prevented', '', true) +
+    k(eur(s.estLossAvoided), 'Est. loss avoided', 'good', true) +
+    k(roi ? roi.toFixed(0) + '×' : '-', 'Return on fees paid', '', true) +
+    k(eur(s.fees), 'Fees (pay per outcome)') +
+    k(s.pendingApprovals, 'Awaiting approval') +
+    k(eur(s.openValue), `At risk, ${s.openOrders} open order${s.openOrders === 1 ? '' : 's'}`);
+}
+
+function checkList(d) {
+  const parts = String(d.reason || '').split(' | ');
+  const why = parts.shift();
+  const rules = parts.map(p => `<li><span class="ic" style="color:var(--warn)">!</span><span>${esc(p)}</span></li>`);
+  const passed = d.verdict === 'auto' ? `<li><span class="ic" style="color:var(--good)">✓</span><span>Within every merchant limit, safe to run without asking.</span></li>` : '';
+  return { why, html: `<ul class="checks">${rules.join('')}${passed}</ul>` };
+}
+
+function decisionHtml(d) {
+  const c = checkList(d);
+  const money = d.amount > 0 ? ` <b>${eur(d.amount)}</b>` : '';
+  return `<div class="decision">
+    <div class="top"><span class="act">${esc(ACTION_LABEL[d.action] || d.action)}${money}</span>${statusBadge(d.status)}
+      ${d.verdict === 'auto' ? badge('b-good', '✓', 'Auto-approved by policy') : badge('b-warn', '!', 'Escalated to merchant')}</div>
+    <div class="sub"><b>Why the AI chose this:</b> ${esc(c.why)}</div>
+    <div style="margin-top:6px" class="sub"><b>Guardrail checks:</b></div>${c.html}
+    ${d.message_to_buyer && d.status === 'pending' ? `<div class="draft"><div class="sub" style="margin-bottom:2px">Draft message to buyer (sent after approval)</div>${esc(d.message_to_buyer)}</div>` : ''}
+    ${d.paypal_ref ? `<div class="sub" style="margin-top:8px">PayPal refund reference <code>${esc(d.paypal_ref)}</code></div>` : ''}
+    ${d.status === 'pending' ? `<div class="actions"><button class="good" data-a="approve" data-id="${d.id}">Approve</button><button class="ghost" data-a="reject" data-id="${d.id}">Reject</button></div>` : ''}
+  </div>`;
+}
+
+async function renderCase() {
+  const el = $('case');
+  const o = ORDERS.find(x => x.paypal_order_id === selectedId);
+  if (!o) { el.innerHTML = '<h2>Case</h2><div class="empty">No orders yet. Click Reset demo data.</div>'; return; }
+  const msgs = await api(`/api/messages/${o.paypal_order_id}`);
+  const dec = DECISIONS.filter(d => d.order_id === o.paypal_order_id);
+  el.innerHTML = `<h2>Case</h2>
+    <div class="case-head"><span class="t">${esc(o.item)}</span><span class="sub">${eur(o.amount)} · ${esc(o.buyer_name)}</span>${shipBadge(o.shipping_status)}${stateBadge(o.state)}</div>
+    <div class="thread">${msgs.length ? msgs.map(m => `<div class="msg ${m.sender}"><small>${m.sender === 'buyer' ? esc(o.buyer_name) : 'Merchant (AI agent)'}</small>${esc(m.body)}</div>`).join('') : '<div class="sub">No messages yet. Pick a scenario and click "Send buyer message".</div>'}</div>
+    ${dec.length ? dec.map(decisionHtml).join('') : '<div class="sub">The agent has not looked at this case yet.</div>'}`;
+}
+
+function renderQueue() {
+  const items = DECISIONS.filter(d => d.status === 'pending');
+  $('queue').innerHTML = items.length ? items.map(d => {
+    const o = ORDERS.find(x => x.paypal_order_id === d.order_id);
+    return `<div class="queue-item"><div class="row"><b>${esc(o?.item ?? d.order_id)}</b> ${badge('b-info', '→', ACTION_LABEL[d.action] || d.action)}${d.amount > 0 ? `<b>${eur(d.amount)}</b>` : ''}</div>
+      <div style="margin-top:4px">${riskHtml(d.risk)}</div>
+      <div class="actions"><button class="good" data-a="approve" data-id="${d.id}">Approve</button><button class="ghost" data-a="reject" data-id="${d.id}">Reject</button><button class="ghost" data-open="${d.order_id}">View case</button></div></div>`;
+  }).join('') : '<div class="empty">Nothing waiting. The guardrails handled everything on their own.</div>';
+}
+
+function renderRoi() {
+  const s = STATS;
+  if (!s.prevented) { $('roi').innerHTML = ''; return; }
+  const max = Math.max(s.estLossAvoided, s.fees + s.refundedTotal, 1);
+  const bar = (l, v, c) => `<div class="bar"><span>${l}</span><div class="track"><div class="fill" style="width:${Math.max(3, v / max * 100)}%;background:${c}"></div></div><span class="val">${eur(v)}</span></div>`;
+  $('roi').innerHTML = `<div class="roi">${bar('Loss avoided (est.)', s.estLossAvoided, 'var(--good)')}${bar('Fees + refunds', s.fees + s.refundedTotal, 'var(--accent)')}</div>`;
+}
+
 async function act(btn, fn) {
-  btn.disabled = true;
-  try { await fn(); } catch (e) { log('Error: ' + e.message); } finally { btn.disabled = false; await refresh(); }
+  if (btn) btn.disabled = true;
+  try { await fn(); } catch (e) { toast('Error: ' + e.message); } finally { if (btn) btn.disabled = false; await refresh(); }
 }
+const need = () => { if (!selectedId) throw new Error('Select an order first'); return ORDERS.find(o => o.paypal_order_id === selectedId); };
 
-$('delay').onclick = e => act(e.target, async () => {
-  const o = selected();
-  await api(`/api/orders/${o.paypal_order_id}/delay`, 'POST', { days: 6, message: `Hi, my ${o.item} was supposed to arrive days ago and tracking hasn't moved. I'm getting worried, what is going on?` });
-  log('Delay injected. Run the agent.');
+$('signal').onclick = e => act(e.currentTarget, async () => {
+  const o = need(); const s = SCENARIOS[$('scenario').value];
+  await api(`/api/orders/${o.paypal_order_id}/delay`, 'POST', { days: s.days, message: s.message(o.item.toLowerCase()) });
+  toast('Buyer message sent. Now run the AI agent.');
 });
-$('agent').onclick = e => act(e.target, async () => {
-  const o = selected(); log('Agent thinking...');
+$('agent').onclick = e => act(e.currentTarget, async () => {
+  const o = need(); toast('Agent is reading the case...');
   const d = await api(`/api/orders/${o.paypal_order_id}/run-agent`, 'POST');
-  log(`Agent chose ${d.action} (${d.verdict}, ${d.status}).`);
+  toast(d.status === 'pending' ? 'Agent proposed a fix that needs your approval.' : `Agent acted: ${ACTION_LABEL[d.action] || d.action}.`);
 });
-$('reset').onclick = e => act(e.target, async () => { log('Creating fresh sandbox orders...'); const r = await api('/api/demo/reset', 'POST'); log(`Created ${r.created} captured sandbox orders.`); });
-$('decisions').onclick = e => { const b = e.target.closest('button'); if (b) act(b, () => api(`/api/decisions/${b.dataset.id}/${b.dataset.a}`, 'POST')); };
-$('travel').onclick = e => act(e.target, async () => { const r = await api('/api/time-travel', 'POST'); log(`Checked ${r.confirmed} resolved order(s).`); });
-$('invoice').onclick = e => act(e.target, async () => {
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]');
+  if (b) return act(b, async () => { await api(`/api/decisions/${b.dataset.id}/${b.dataset.a}`, 'POST'); toast(b.dataset.a === 'approve' ? 'Approved and executed on PayPal.' : 'Rejected.'); });
+  const v = e.target.closest('button[data-open]');
+  if (v) { selectedId = v.dataset.open; grid.forEachNode(n => n.setSelected(n.data?.paypal_order_id === selectedId)); renderCase(); }
+});
+$('reset').onclick = e => act(e.currentTarget, async () => { toast('Creating fresh sandbox orders on PayPal...'); const r = await api('/api/demo/reset', 'POST'); toast(`Created ${r.created} captured sandbox orders.`); });
+$('travel').onclick = e => act(e.currentTarget, async () => { await api('/api/time-travel', 'POST'); toast('14 days passed with no disputes.'); });
+$('invoice').onclick = e => act(e.currentTarget, async () => {
   const r = await api('/api/billing/invoice', 'POST');
-  $('inv').innerHTML = `Invoice ${r.id}: ${r.count} x fee = ${eur(r.total)} - <a href="${r.payerView}" target="_blank" rel="noopener">open</a>`;
+  $('inv').innerHTML = `Invoice created: ${r.count} prevented × ${eur(r.total / r.count)} = <b>${eur(r.total)}</b>. <a href="${esc(r.payerView)}" target="_blank" rel="noopener">View on PayPal</a>`;
+  toast('PayPal invoice created.');
 });
 refresh();
 </script>
