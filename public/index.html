@@ -153,6 +153,7 @@
         <div id="inv" class="sub" style="margin-top:8px"></div>
         <div id="roi"></div>
       </section>
+      <section class="card"><h2>PayPal events (webhooks)</h2><div id="events"></div></section>
     </div>
   </div>
 </main>
@@ -225,10 +226,16 @@ const fitColumns = () => {
 };
 narrow.addEventListener('change', fitColumns);
 
-let ORDERS = [], DECISIONS = [], STATS = {};
+let ORDERS = [], DECISIONS = [], STATS = {}, EVENTS = [];
+
+function renderEvents() {
+  $('events').innerHTML = EVENTS.length ? EVENTS.map(e => `<div class="queue-item" style="padding:8px 12px"><div class="row">${badge('b-good', '✓', 'Verified')}<span class="sub">${esc(e.type)}</span></div><div style="margin-top:2px;font-size:13px">${esc(e.summary)}</div></div>`).join('')
+    : '<div class="empty">No events yet. PayPal confirms each refund here with a signed webhook.</div>';
+}
 
 async function refresh() {
-  [ORDERS, DECISIONS, STATS] = await Promise.all([api('/api/orders'), api('/api/decisions'), api('/api/stats')]);
+  [ORDERS, DECISIONS, STATS, EVENTS] = await Promise.all([api('/api/orders'), api('/api/decisions'), api('/api/stats'), api('/api/events')]);
+  renderEvents();
   grid.setGridOption('rowData', ORDERS);
   grid.setGridOption('pinnedBottomRowData', [{ item: 'Total', amount: ORDERS.reduce((s, o) => s + o.amount, 0), refunded: ORDERS.reduce((s, o) => s + o.refunded, 0) }]);
   if (!selectedId || !ORDERS.some(o => o.paypal_order_id === selectedId)) selectedId = (ORDERS.find(o => o.state === 'open') || ORDERS[0])?.paypal_order_id ?? null;
@@ -265,7 +272,7 @@ function decisionHtml(d) {
     <div class="sub"><b>Why the AI chose this:</b> ${esc(c.why)}</div>
     <div style="margin-top:6px" class="sub"><b>Guardrail checks:</b></div>${c.html}
     ${d.message_to_buyer && d.status === 'pending' ? `<div class="draft"><div class="sub" style="margin-bottom:2px">Draft message to buyer (sent after approval)</div>${esc(d.message_to_buyer)}</div>` : ''}
-    ${d.paypal_ref ? `<div class="sub" style="margin-top:8px">PayPal refund reference <code>${esc(d.paypal_ref)}</code></div>` : ''}
+    ${d.paypal_ref ? `<div class="sub" style="margin-top:8px">PayPal refund reference <code>${esc(d.paypal_ref)}</code> ${d.confirmed ? badge('b-good', '✓', 'Confirmed by PayPal webhook') : badge('b-mute', '…', 'Awaiting PayPal webhook')}</div>` : ''}
     ${d.status === 'pending' ? `<div class="actions"><button class="good" data-a="approve" data-id="${d.id}">Approve</button><button class="ghost" data-a="reject" data-id="${d.id}">Reject</button></div>` : ''}
   </div>`;
 }

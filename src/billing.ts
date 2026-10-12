@@ -7,7 +7,7 @@ import { createAndSendInvoice } from "./paypal.js";
 export function confirmPrevented() {
   const resolved = all(
     `SELECT o.* FROM orders o
-     WHERE o.state = 'resolved' AND NOT EXISTS (SELECT 1 FROM outcomes x WHERE x.order_id = o.paypal_order_id)`,
+     WHERE o.state = 'resolved' AND o.disputed = 0 AND NOT EXISTS (SELECT 1 FROM outcomes x WHERE x.order_id = o.paypal_order_id)`,
   );
   for (const o of resolved) {
     const d = get("SELECT * FROM decisions WHERE order_id = ? AND status = 'executed' ORDER BY id DESC LIMIT 1", o.paypal_order_id);

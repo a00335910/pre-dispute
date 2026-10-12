@@ -9,6 +9,7 @@ async function token() {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: "grant_type=client_credentials",
+    signal: AbortSignal.timeout(30_000),
   });
   const j: any = await res.json();
   if (!res.ok) throw new Error(`PayPal auth ${res.status}: ${j.error_description ?? j.error}`);
@@ -25,6 +26,7 @@ export async function pp(path: string, opts: { method?: string; body?: unknown; 
       ...(opts.requestId ? { "PayPal-Request-Id": opts.requestId } : {}),
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
+    signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
   const json: any = text ? JSON.parse(text) : null;

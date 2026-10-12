@@ -10,33 +10,38 @@ export const Proposal = z.object({
 });
 export type Proposal = z.infer<typeof Proposal>;
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Free-tier Gemini has small per-model daily quotas and occasional stalls. Try each configured model in order,
+// remember which ones are unavailable for a while, and let the caller fall back to rules if all of them fail.
+const cooldownUntil = new Map<string, number>();
+const COOLDOWN_MS = 10 * 60_000;
 
-// Free-tier Gemini returns transient 429/503s, so retry with backoff and fall back to a second model.
 export async function askGemini(prompt: string): Promise<Proposal> {
-  const models = [cfg.llmModel, cfg.llmFallbackModel];
-  let lastError = "unknown";
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const model = models[attempt % models.length];
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "x-goog-api-key": cfg.llmKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
-      }),
-    });
-    const j: any = await res.json();
-    if (!res.ok) {
-      lastError = `Gemini ${res.status} (${model}): ${j.error?.message ?? "error"}`;
-      if ([429, 500, 503, 404].includes(res.status)) { await sleep(1000 * 2 ** attempt); continue; }
-      throw new Error(lastError);
-    }
+  const models = [cfg.llmModel, ...cfg.llmFallbackModels].filter((m, i, a) => m && a.indexOf(m) === i);
+  const ready = models.filter((m) => (cooldownUntil.get(m) ?? 0) < Date.now());
+  const errors: string[] = [];
+
+  for (const model of ready.length ? ready : models) {
     try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "x-goog-api-key": cfg.llmKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+        }),
+        signal: AbortSignal.timeout(12_000),
+      });
+      const j: any = await res.json();
+      if (!res.ok) {
+        errors.push(`${model}: ${res.status}`);
+        if ([404, 429, 500, 503].includes(res.status)) { cooldownUntil.set(model, Date.now() + COOLDOWN_MS); continue; }
+        break; // auth or request errors will not be fixed by another model
+      }
       return Proposal.parse(JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text ?? ""));
-    } catch {
-      lastError = `Gemini (${model}) returned invalid JSON`;
+    } catch (e: any) {
+      errors.push(`${model}: ${e?.name === "TimeoutError" ? "timeout" : "invalid response"}`);
+      cooldownUntil.set(model, Date.now() + COOLDOWN_MS);
     }
   }
-  throw new Error(lastError);
+  throw new Error(`No Gemini model available (${errors.join(", ")})`);
 }

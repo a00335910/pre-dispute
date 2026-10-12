@@ -4,7 +4,9 @@ export const cfg = {
   clientSecret: process.env.PAYPAL_CLIENT_SECRET ?? "",
   llmKey: process.env.LLM_API_KEY ?? "",
   llmModel: process.env.LLM_MODEL ?? "gemini-3.8-flash",
-  llmFallbackModel: process.env.LLM_FALLBACK_MODEL ?? "gemini-3.5-flash",
+  // Comma-separated, tried in order after llmModel. Free-tier quotas are per model, so more models means more headroom.
+  llmFallbackModels: (process.env.LLM_FALLBACK_MODEL ?? "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-2.5-flash-lite")
+    .split(",").map((s) => s.trim()).filter(Boolean),
   port: Number(process.env.PORT ?? 3000),
   dbPath: process.env.DB_PATH ?? "pre-dispute.db",
   currency: "EUR",

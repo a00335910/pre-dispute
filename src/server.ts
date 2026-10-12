@@ -4,9 +4,16 @@ import { all, get, run } from "./db.js";
 import { cfg } from "./config.js";
 import { executeDecision, runAgent } from "./agent.js";
 import { hasOrders, resetDemoData, seedDemoOrders } from "./demo.js";
+import { ensureWebhook, handleWebhook, recentEvents } from "./webhooks.js";
 import { confirmPrevented, invoiceOutcomes, stats } from "./billing.js";
 
 const app = express();
+app.post("/api/webhooks/paypal", express.raw({ type: "*/*", limit: "1mb" }), async (req, res) => {
+  try {
+    const r = await handleWebhook(req.body.toString("utf8"), req.headers);
+    res.status(r.status).json(r.body);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
 app.use(express.json());
 app.use(express.static(new URL("../public", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")));
 
@@ -22,6 +29,7 @@ app.get("/api/orders", wrap(() => all(`
   FROM orders o WHERE state != 'awaiting_approval' ORDER BY o.created_at DESC`)));
 app.get("/api/decisions", wrap(() => all("SELECT * FROM decisions ORDER BY id DESC LIMIT 50")));
 app.get("/api/messages/:id", wrap((r) => all("SELECT * FROM messages WHERE order_id = ? ORDER BY id", r.params.id)));
+app.get("/api/events", wrap(() => recentEvents()));
 app.get("/api/stats", wrap(() => stats()));
 
 const Delay = z.object({ days: z.number().int().min(1).max(60), message: z.string().min(1).max(500) });
@@ -53,6 +61,11 @@ app.post("/api/billing/invoice", wrap(() => invoiceOutcomes("merchant-demo@examp
 
 app.listen(cfg.port, async () => {
   console.log(`Pre-Dispute running on port ${cfg.port}`);
+  const publicUrl = process.env.PUBLIC_URL ?? process.env.RENDER_EXTERNAL_URL;
+  if (publicUrl) {
+    try { const w = await ensureWebhook(publicUrl); console.log(`Webhook ${w.created ? "registered" : "already registered"}: ${w.url}`); }
+    catch (e: any) { console.error("Webhook registration failed:", e.message); }
+  }
   if (process.env.DEMO_AUTOSEED !== "false" && !hasOrders()) {
     try { console.log(`Seeded ${await seedDemoOrders()} demo orders`); }
     catch (e: any) { console.error("Auto-seed failed:", e.message); }

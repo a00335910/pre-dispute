@@ -1,5 +1,6 @@
 import { all, get, run, type Row } from "./db.js";
 import { askGemini } from "./llm.js";
+import { rulesProposal } from "./fallback.js";
 import { evaluate } from "./policy.js";
 import { policy } from "./config.js";
 import { refundCapture } from "./paypal.js";
@@ -24,7 +25,13 @@ export async function runAgent(orderId: string) {
   if (order.state !== "open") throw new Error(`Order is ${order.state}, not open`);
 
   const msgs = all("SELECT * FROM messages WHERE order_id = ? ORDER BY id", orderId);
-  const proposal = await askGemini(buildPrompt(order, msgs));
+  let proposal;
+  try {
+    proposal = await askGemini(buildPrompt(order, msgs));
+  } catch (e: any) {
+    // Never leave the merchant without a proposal: use clearly labelled rules while the AI is unavailable.
+    proposal = rulesProposal(order, msgs.filter((m) => m.sender === "buyer").map((m) => String(m.body)), String(e.message));
+  }
   const v = evaluate(order, proposal);
 
   const reason = [proposal.reason, ...v.notes].join(" | ");

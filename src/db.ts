@@ -31,7 +31,19 @@ CREATE TABLE IF NOT EXISTS outcomes (
   id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL UNIQUE,
   fee REAL NOT NULL, loss_avoided REAL NOT NULL, invoice_id TEXT, ts TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY, type TEXT NOT NULL, summary TEXT, verified INTEGER NOT NULL DEFAULT 0,
+  order_id TEXT, ts TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
+
+// Lightweight migrations for databases created before these columns existed.
+for (const sql of [
+  "ALTER TABLE orders ADD COLUMN disputed INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE decisions ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0",
+]) {
+  try { db.exec(sql); } catch { /* column already exists */ }
+}
 
 export type Row = Record<string, any>;
 export const all = (sql: string, ...p: any[]) => db.prepare(sql).all(...p) as Row[];
