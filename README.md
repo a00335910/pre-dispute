@@ -62,3 +62,8 @@ Requirements: Node 24+ (uses the built-in `node:sqlite`), a PayPal developer acc
 
 ## License
 MIT
+
+## Repo layout
+- `src/` - server, agent, policy engine, PayPal client, billing
+- `public/` - dashboard (AG Grid)
+- `spike/` and `SPIKE.md` - early sandbox experiments and what worked, kept for reference

@@ -31,10 +31,4 @@ if (cmd === "new") {
       console.log(`${o.item}: captured ${capId}`);
     } catch (e: any) { console.log(`${o.item}: ${e.message}`); }
   }
-} else if (cmd === "import") {
-  // The order captured during the spike (5 EUR already refunded)
-  if (!get("SELECT 1 FROM orders WHERE paypal_order_id = '5VP70186LW252290K'"))
-    run("INSERT INTO orders (paypal_order_id, capture_id, state, amount, refunded, item, buyer_name) VALUES (?,?,?,?,?,?,?)",
-      "5VP70186LW252290K", "93M49156T6644662B", "open", 45, 5, "Spike order", "Test Buyer");
-  console.log("imported");
-} else console.log("usage: seed.ts new|capture|import");
+} else console.log("usage: seed.ts new|capture");

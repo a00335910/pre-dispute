@@ -9,7 +9,6 @@
     "dev": "tsx --env-file=.env src/server.ts",
     "seed:new": "tsx --env-file=.env src/seed.ts new",
     "seed:capture": "tsx --env-file=.env src/seed.ts capture",
-    "seed:import": "tsx --env-file=.env src/seed.ts import",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
