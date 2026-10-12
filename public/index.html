@@ -241,7 +241,7 @@ function renderKpis() {
   const k = (v, l, cls = '', hero = false) => `<div class="kpi ${hero ? 'hero' : ''}"><div class="v ${cls}">${v}</div><div class="l">${l}</div></div>`;
   $('kpis').innerHTML =
     k(s.prevented, 'Disputes prevented', '', true) +
-    k(eur(s.estLossAvoided), 'Est. loss avoided', 'good', true) +
+    k(eur(s.estLossAvoided), 'Est. saved vs. losing the dispute', 'good', true) +
     k(roi ? roi.toFixed(0) + '×' : '-', 'Return on fees paid', '', true) +
     k(eur(s.fees), 'Fees (pay per outcome)') +
     k(s.pendingApprovals, 'Awaiting approval') +
@@ -297,7 +297,7 @@ function renderRoi() {
   if (!s.prevented) { $('roi').innerHTML = ''; return; }
   const max = Math.max(s.estLossAvoided, s.fees + s.refundedTotal, 1);
   const bar = (l, v, c) => `<div class="bar"><span>${l}</span><div class="track"><div class="fill" style="width:${Math.max(3, v / max * 100)}%;background:${c}"></div></div><span class="val">${eur(v)}</span></div>`;
-  $('roi').innerHTML = `<div class="roi">${bar('Loss avoided (est.)', s.estLossAvoided, 'var(--good)')}${bar('Fees + refunds', s.fees + s.refundedTotal, 'var(--accent)')}</div>`;
+  $('roi').innerHTML = `<div class="roi">${bar('Saved vs. loss (est.)', s.estLossAvoided, 'var(--good)')}${bar('Fees + refunds', s.fees + s.refundedTotal, 'var(--accent)')}</div>`;
 }
 
 async function act(btn, fn) {

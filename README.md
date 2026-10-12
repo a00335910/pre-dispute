@@ -56,7 +56,7 @@ Requirements: Node 24+ (uses the built-in `node:sqlite`), a PayPal developer acc
 ## Limits and honesty
 - "Prevented" is simulated by the fast-forward button. A production version would confirm with the PayPal Disputes API and webhooks.
 - Shipping and buyer messages are simulated; there is no carrier integration.
-- "Estimated loss avoided" is an illustrative figure (remaining order value plus an assumed 15 EUR dispute cost).
+- "Estimated saved vs. losing the dispute" compares the agent outcome to the worst case where the buyer wins a dispute (order value plus an assumed 15 EUR dispute cost, minus any refund we paid). A full refund therefore saves little; a small goodwill refund saves a lot. It is illustrative, not accounting.
 - Sandbox only. Do not point this at live credentials.
 
 ## License
