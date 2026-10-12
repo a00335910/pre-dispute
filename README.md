@@ -53,6 +53,16 @@ Requirements: Node 24+ (uses the built-in `node:sqlite`), a PayPal developer acc
 ## Deploy on Render
 `render.yaml` defines the service. Connect the repo in Render, then set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `LLM_API_KEY` in the dashboard. The free tier has no persistent disk, so the SQLite file lives in `/tmp` and the demo data re-seeds on each restart.
 
+## Webhooks
+When the server has a public URL (`PUBLIC_URL`, or Render's `RENDER_EXTERNAL_URL`) it registers `/api/webhooks/paypal` with PayPal at boot for `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, `CUSTOMER.DISPUTE.CREATED` and `INVOICING.INVOICE.PAID`.
+- Every event is checked with PayPal's `verify-webhook-signature` API. Unsigned or forged events get a 401.
+- A refund event confirms the matching decision in the dashboard. A dispute event marks the order disputed and removes it from billing, so a dispute that actually happened is never invoiced as "prevented".
+- Sandbox webhook delivery can lag by several minutes. Until a refund event arrives the dashboard shows "Awaiting PayPal webhook".
+- For local testing without a public URL, set `WEBHOOK_SKIP_VERIFY=true` and post sample events yourself. Never set it in production.
+
+## AI availability
+The Gemini free tier has small per-model daily quotas. The agent tries the configured models in order (`LLM_MODEL`, then `LLM_FALLBACK_MODEL`, a comma-separated list), remembers which ones are exhausted, and as a last resort uses a deterministic rules fallback. Fallback decisions are labelled "Rules fallback (AI unavailable)" in the decision reasoning, so they are never mistaken for the AI. A paid Gemini key removes the quota concern.
+
 ## Limits and honesty
 - "Prevented" is simulated by the fast-forward button. A production version would confirm with the PayPal Disputes API and webhooks.
 - Shipping and buyer messages are simulated; there is no carrier integration.

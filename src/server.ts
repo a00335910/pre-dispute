@@ -3,7 +3,7 @@ import { z } from "zod";
 import { all, get, run } from "./db.js";
 import { cfg } from "./config.js";
 import { executeDecision, runAgent } from "./agent.js";
-import { hasOrders, resetDemoData, seedDemoOrders } from "./demo.js";
+import { hasOrders, resetAndSeed, seedDemoOrders } from "./demo.js";
 import { ensureWebhook, handleWebhook, recentEvents } from "./webhooks.js";
 import { confirmPrevented, invoiceOutcomes, stats } from "./billing.js";
 
@@ -55,7 +55,7 @@ const limited = (fn: () => Promise<unknown> | unknown) => () => {
   hits.push(now);
   return fn();
 };
-app.post("/api/demo/reset", wrap(limited(async () => { resetDemoData(); return { created: await seedDemoOrders() }; })));
+app.post("/api/demo/reset", wrap(limited(async () => ({ created: await resetAndSeed() }))));
 app.post("/api/time-travel", wrap(() => ({ confirmed: confirmPrevented() })));
 app.post("/api/billing/invoice", wrap(() => invoiceOutcomes("merchant-demo@example.com")));
 
