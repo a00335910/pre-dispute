@@ -4,6 +4,16 @@ An AI agent that fixes problems **before** a buyer opens a PayPal dispute, and b
 
 Built for the PayPal AI Hackathon. Everything runs against the PayPal **sandbox** with fake data.
 
+**Live demo:** https://pre-dispute.onrender.com (free plan, the first load can take ~30 seconds)
+
+## Try it in 60 seconds
+1. Open the live demo and click **Reset demo data** (creates 5 real, captured sandbox orders).
+2. Select **Ceramic coffee set**, choose *Worried buyer*, click **1 · Send buyer message**, then **2 · Run AI agent**. A small goodwill refund runs automatically.
+3. Select **USB-C dock**, choose *Angry, threatens a dispute*, repeat. The case lands in **Waiting for your approval**. Click **Approve** to run the refund on PayPal.
+4. Click **Fast-forward 14 days**, then **Create PayPal invoice**.
+
+No login is needed.
+
 ## The problem
 When an order goes wrong (late shipment, silence, a worried buyer), merchants usually find out when a dispute or chargeback lands. By then the fix is expensive. Pre-Dispute watches paid orders, spots rising dispute risk, and picks the cheapest fix while the buyer is still reachable.
 
