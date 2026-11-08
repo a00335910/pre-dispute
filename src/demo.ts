@@ -30,7 +30,7 @@ async function doSeed() {
 }
 
 export function resetDemoData() {
-  db.exec("DELETE FROM messages; DELETE FROM decisions; DELETE FROM outcomes; DELETE FROM orders;");
+  db.exec("DELETE FROM messages; DELETE FROM decisions; DELETE FROM outcomes; DELETE FROM events; DELETE FROM orders;");
 }
 
 // A reset waits for any seeding already in flight, then wipes and seeds a clean set.
