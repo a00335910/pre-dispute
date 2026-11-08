@@ -50,6 +50,11 @@ export async function handleWebhook(raw: string, headers: Record<string, string 
     const refundId = ev.resource?.id;
     const d = get("SELECT * FROM decisions WHERE paypal_ref = ?", refundId);
     if (d) { run("UPDATE decisions SET confirmed = 1 WHERE id = ?", d.id); orderId = d.order_id; summary = `Refund ${refundId} confirmed by PayPal`; }
+  } else if (ev.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+    const amt = Number(ev.resource?.amount?.value);
+    const o = ev.resource?.id ? get("SELECT * FROM orders WHERE capture_id = ?", ev.resource.id) : undefined;
+    if (o) orderId = o.paypal_order_id;
+    if (Number.isFinite(amt)) summary = `Payment of €${amt.toFixed(2)} captured${o ? ` for ${o.item}` : ""}`;
   } else if (ev.event_type === "CUSTOMER.DISPUTE.CREATED") {
     const capId = ev.resource?.disputed_transactions?.[0]?.seller_transaction_id;
     const o = capId ? get("SELECT * FROM orders WHERE capture_id = ?", capId) : undefined;

@@ -10,6 +10,7 @@ export interface Verdict {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+const eur = (n: number) => `€${n.toFixed(2)}`;
 
 // Deterministic guardrails. The LLM only proposes; this decides what may run unattended.
 export function evaluate(order: Row, p: Proposal): Verdict {
@@ -23,7 +24,7 @@ export function evaluate(order: Row, p: Proposal): Verdict {
     notes.push("Refund amount was zero; downgraded to notify.");
   }
   if (amount > refundable) {
-    notes.push(`Clamped refund from ${amount} to refundable ${refundable}.`);
+    notes.push(`Refund lowered from ${eur(amount)} to the ${eur(refundable)} still refundable.`);
     amount = refundable;
   }
   if (action === "full_refund" && refundable <= 0) action = "no_action";
@@ -34,15 +35,15 @@ export function evaluate(order: Row, p: Proposal): Verdict {
 
   if (isRefund && amount > policy.autoApproveMaxEur) {
     verdict = "needs_approval";
-    notes.push(`Refund ${amount} exceeds auto-approve limit ${policy.autoApproveMaxEur}.`);
+    notes.push(`${eur(amount)} refund is over the ${eur(policy.autoApproveMaxEur)} auto-approve limit.`);
   }
   if (isRefund && amount > cap) {
     verdict = "needs_approval";
-    notes.push(`Refund ${amount} exceeds ${policy.maxRefundPct * 100}% of order (${cap}).`);
+    notes.push(`${eur(amount)} refund is more than ${policy.maxRefundPct * 100}% of the order (${eur(cap)}).`);
   }
   if (p.risk >= policy.escalateRisk && action !== "no_action") {
     verdict = "needs_approval";
-    notes.push(`Risk ${p.risk} is at or above ${policy.escalateRisk}; merchant must review.`);
+    notes.push(`${Math.round(p.risk * 100)}% dispute risk is above the ${Math.round(policy.escalateRisk * 100)}% review threshold.`);
   }
   if (action === "reship") {
     verdict = "needs_approval";

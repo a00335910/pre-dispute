@@ -30,5 +30,10 @@ export function stats() {
   const r = get("SELECT COALESCE(SUM(refunded),0) refunded FROM orders")!;
   const open = get("SELECT COUNT(*) n, COALESCE(SUM(amount),0) at_risk FROM orders WHERE state = 'open'")!;
   const pending = get("SELECT COUNT(*) n FROM decisions WHERE status = 'pending'")!;
-  return { prevented: o.n, fees: o.fees, estLossAvoided: o.avoided, refundedTotal: r.refunded, openOrders: open.n, openValue: open.at_risk, pendingApprovals: pending.n };
+  // For prevented cases only: what a lost dispute would have cost vs. what the merchant actually paid.
+  const b = get(`SELECT COALESCE(SUM(o.amount),0) value, COALESCE(SUM(o.refunded),0) refunded
+                 FROM outcomes x JOIN orders o ON o.paypal_order_id = x.order_id`)!;
+  const costIfLost = b.value + o.n * policy.assumedDisputeCostEur;
+  const costWithUs = b.refunded + o.fees;
+  return { prevented: o.n, fees: o.fees, estLossAvoided: o.avoided, refundedTotal: r.refunded, openOrders: open.n, openValue: open.at_risk, pendingApprovals: pending.n, costIfLost, costWithUs, netSaved: costIfLost - costWithUs };
 }
